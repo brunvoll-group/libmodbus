@@ -35,10 +35,11 @@ typedef int ssize_t;
 MODBUS_BEGIN_DECLS
 
 /* It's not really the minimal length (the real one is report slave ID
- * in RTU (4 bytes)) but it's a convenient size to use in RTU or TCP
+ * in RTU (4 bytes)) but it's a convenient size to use in RTU or TCP or UDP
  * communications to read many values or write a single one.
  * Maximum between :
  * - HEADER_LENGTH_TCP (7) + function (1) + address (2) + number (2)
+ * - HEADER_LENGTH_UDP (7) + function (1) + address (2) + number (2)
  * - HEADER_LENGTH_RTU (1) + function (1) + address (2) + number (2) + CRC (2)
  */
 #define _MIN_REQ_LENGTH 12
@@ -66,7 +67,8 @@ MODBUS_BEGIN_DECLS
 
 typedef enum {
     _MODBUS_BACKEND_TYPE_RTU=0,
-    _MODBUS_BACKEND_TYPE_TCP
+    _MODBUS_BACKEND_TYPE_TCP,
+    _MODBUS_BACKEND_TYPE_UDP
 } modbus_bakend_type_t;
 
 /* This structure reduces the number of params in functions and so

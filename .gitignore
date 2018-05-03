@@ -7,6 +7,7 @@ Makefile
 Makefile.in
 aclocal.m4
 autom4te.cache/
+compile
 config.guess
 config.h
 config.h.in
@@ -34,6 +35,7 @@ tests/bandwidth-server-many-up
 tests/bandwidth-server-one
 tests/random-test-client
 tests/random-test-server
+tests/stamp-h2
 tests/unit-test-client
 tests/unit-test.h
 tests/unit-test-server
