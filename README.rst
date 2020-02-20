@@ -24,8 +24,16 @@ The official website is http://www.libmodbus.org.
 The library is written in C and designed to run on Linux, Mac OS X, FreeBSD and
 QNX and Windows.
 
+KRAY IMROOVEMENTS
+-----------------
+UDP working mode have been added
+
 Installation
 ------------
+You can use Installation shell script install_lib.sh using sudo:
+ ``sudo ./install_lib.sh``
+
+OR install using separate commands:
 
 The shell commands are ``./autogen.sh; ./configure; make; make install``.
 
