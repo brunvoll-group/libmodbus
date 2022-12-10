@@ -1,4 +1,4 @@
-EXTRA_DIST = README
+EXTRA_DIST = README.md unit-tests.sh LICENSE
 
 noinst_PROGRAMS = \
 	bandwidth-server-one \
@@ -37,5 +37,16 @@ unit_test_client_LDADD = $(common_ldflags)
 version_SOURCES = version.c
 version_LDADD = $(common_ldflags)
 
-AM_CPPFLAGS = -I$(top_srcdir) -I$(top_srcdir)/src
-CLEANFILES = *~
+AM_CPPFLAGS = \
+    -include $(top_builddir)/config.h \
+    -DSYSCONFDIR=\""$(sysconfdir)"\" \
+    -DLIBEXECDIR=\""$(libexecdir)"\" \
+    -I${top_srcdir}/src \
+    -I${top_builddir}/src
+
+AM_CFLAGS = ${my_CFLAGS}
+
+CLEANFILES = *~ *.log
+
+noinst_SCRIPTS=unit-tests.sh
+TESTS=./unit-tests.sh
