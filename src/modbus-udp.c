@@ -190,7 +190,12 @@ ssize_t _modbus_udp_send(modbus_t *ctx, const uint8_t *req, int req_length)
         (struct sockaddr *)&ctx_udp->si_other, sizeof(ctx_udp->si_other));
 }
 
-ssize_t _modbus_udp_recv(modbus_t *ctx, uint8_t *rsp, int rsp_length)
+static int _modbus_udp_receive(modbus_t* ctx, uint8_t* req)
+{
+    return _modbus_receive_msg(ctx, req, MSG_INDICATION);
+}
+
+ssize_t _modbus_udp_recv(modbus_t *ctx, uint8_t *rsp, int req_length)
 {
     modbus_udp_t *ctx_udp = ctx->backend_data;
     socklen_t slen = sizeof(ctx_udp->si_other);
@@ -229,6 +234,28 @@ static int _modbus_udp_set_ipv4_options(int s)
     /* Set the TCP no delay flag */
     /* SOL_TCP = IPPROTO_TCP */
     option = 1;
+
+    option = 1;
+    rc = setsockopt(s, IPPROTO_TCP, TCP_NODELAY, (const void*)&option, sizeof(int));
+    if (rc == -1) {
+        return -1;
+    }
+
+    /* If the OS does not offer SOCK_NONBLOCK, fall back to setting FIONBIO to
+     * make sockets non-blocking */
+     /* Do not care about the return value, this is optional */
+#if !defined(SOCK_NONBLOCK) && defined(FIONBIO)
+#ifdef OS_WIN32
+    {
+        /* Setting FIONBIO expects an unsigned long according to MSDN */
+        u_long loption = 1;
+        ioctlsocket(s, FIONBIO, &loption);
+    }
+#else
+    option = 1;
+    ioctl(s, FIONBIO, &option);
+#endif
+#endif
 
 #ifndef OS_WIN32
     /**
@@ -276,15 +303,16 @@ static int _modbus_udp_connect(modbus_t *ctx)
     ctx_udp->si_other.sin_family = AF_INET;
     ctx_udp->si_other.sin_port = htons(ctx_udp->port);
 
-    rc = inet_aton(ctx_udp->ip, &ctx_udp->si_other.sin_addr);
-    if (rc == 0) 
-    {
-        // fprintf(stderr, "inet_aton() failed\n");
-        // exit(1);
-        printf("error bind: %s\n", strerror(errno));
+    rc = inet_pton(ctx_udp->si_other.sin_family, ctx_udp->ip, &(ctx_udp->si_other.sin_addr));
+    if (rc <= 0) {
+        if (ctx->debug) {
+            fprintf(stderr, "Invalid IP address: %s\n", ctx_udp->ip);
+        }
         close(ctx->s);
+        ctx->s = -1;
         return -1;
     }
+
 
     return 0;
 }
@@ -349,6 +377,11 @@ static int _modbus_udp_pi_connect(modbus_t *ctx)
     return 0;
 }
 
+static unsigned int _modbus_udp_is_connected(modbus_t* ctx)
+{
+    return ctx->s >= 0 || ctx->backend->backend_type == _MODBUS_BACKEND_TYPE_UDP;
+}
+
 /* Closes the network connection and socket in UDP mode */
 void _modbus_udp_close(modbus_t *ctx)
 {
@@ -407,7 +440,7 @@ int modbus_udp_listen(modbus_t *ctx, int nb_connection)
     }
 #endif
 
-    new_socket = socket(PF_INET, SOCK_STREAM, IPPROTO_UDP);     // AWG ??
+    new_socket = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);     // AWG ??
     if (new_socket == -1) {
         return -1;
     }
@@ -429,10 +462,12 @@ int modbus_udp_listen(modbus_t *ctx, int nb_connection)
         return -1;
     }
 
-    if (listen(new_socket, nb_connection) == -1) {
+    /*if (listen(new_socket, nb_connection) == -1) {
         close(new_socket);
         return -1;
-    }
+    }*/
+
+    ctx->s = new_socket;
 
     return new_socket;
 }
@@ -545,8 +580,13 @@ int modbus_udp_accept(modbus_t *ctx, int *socket)
     }
 
     if (ctx->debug) {
-        printf("The client connection from %s is accepted\n",
-               inet_ntoa(addr.sin_addr));
+        char buf[INET_ADDRSTRLEN];
+        if (inet_ntop(AF_INET, &(addr.sin_addr), buf, INET_ADDRSTRLEN) == NULL) {
+            fprintf(stderr, "Client connection accepted from unparsable IP.\n");
+        }
+        else {
+            printf("Client connection accepted from %s.\n", buf);
+        }
     }
 
     return ctx->s;
@@ -574,7 +614,7 @@ int modbus_udp_pi_accept(modbus_t *ctx, int *socket)
 int _modbus_udp_select(modbus_t *ctx, fd_set *rfds, struct timeval *tv, int length_to_read)
 {
     int s_rc;
-    while ((s_rc = select(ctx->s+1, rfds, NULL, NULL, tv)) == -1) {
+    while ((s_rc = select(ctx->s+1, rfds, NULL, NULL, NULL /*tv*/)) == -1) {
         if (errno == EINTR) {
             if (ctx->debug) {
                 fprintf(stderr, "A non blocked signal was caught\n");
@@ -595,10 +635,30 @@ int _modbus_udp_select(modbus_t *ctx, fd_set *rfds, struct timeval *tv, int leng
     return s_rc;
 }
 
-int _modbus_udp_filter_request(modbus_t *ctx, int slave)
+static void _modbus_udp_free(modbus_t* ctx)
 {
-    return 0;
+    if (ctx->backend_data) {
+        free(ctx->backend_data);
+    }
+    free(ctx);
 }
+
+static void _modbus_udp_pi_free(modbus_t* ctx)
+{
+    if (ctx->backend_data) {
+        modbus_udp_pi_t* ctx_udp_pi = ctx->backend_data;
+        free(ctx_udp_pi->node);
+        free(ctx_udp_pi->service);
+        free(ctx->backend_data);
+    }
+
+    free(ctx);
+}
+
+//int _modbus_udp_filter_request(modbus_t *ctx, int slave)
+//{
+//    return 0;
+//}
 
 const modbus_backend_t _modbus_udp_backend = {
     _MODBUS_BACKEND_TYPE_UDP,
@@ -611,14 +671,16 @@ const modbus_backend_t _modbus_udp_backend = {
     _modbus_udp_prepare_response_tid,
     _modbus_udp_send_msg_pre,
     _modbus_udp_send,
+    _modbus_udp_receive,
     _modbus_udp_recv,
     _modbus_udp_check_integrity,
     _modbus_udp_pre_check_confirmation,
     _modbus_udp_connect,
+    _modbus_udp_is_connected,
     _modbus_udp_close,
     _modbus_udp_flush,
     _modbus_udp_select,
-    _modbus_udp_filter_request
+    _modbus_udp_free
 };
 
 
@@ -633,14 +695,16 @@ const modbus_backend_t _modbus_udp_pi_backend = {
     _modbus_udp_prepare_response_tid,
     _modbus_udp_send_msg_pre,
     _modbus_udp_send,
+    _modbus_udp_receive,
     _modbus_udp_recv,
     _modbus_udp_check_integrity,
     _modbus_udp_pre_check_confirmation,
     _modbus_udp_pi_connect,
+    _modbus_udp_is_connected,
     _modbus_udp_close,
     _modbus_udp_flush,
     _modbus_udp_select,
-    _modbus_udp_filter_request
+    _modbus_udp_pi_free
 };
 
 modbus_t* modbus_new_udp(const char *ip, int port)

@@ -41,13 +41,13 @@ MODBUS_BEGIN_DECLS
  */
 #define MODBUS_UDP_MAX_ADU_LENGTH  260
 
-modbus_t* modbus_new_udp(const char *ip_address, int port);
-int modbus_udp_listen(modbus_t *ctx, int nb_connection);
-int modbus_udp_accept(modbus_t *ctx, int *socket);
+MODBUS_API modbus_t* modbus_new_udp(const char* ip_address, int port);
+MODBUS_API int modbus_udp_listen(modbus_t* ctx, int nb_connection);
+MODBUS_API int modbus_udp_accept(modbus_t* ctx, int* socket);
 
-modbus_t* modbus_new_udp_pi(const char *node, const char *service);
-int modbus_udp_pi_listen(modbus_t *ctx, int nb_connection);
-int modbus_udp_pi_accept(modbus_t *ctx, int *socket);
+MODBUS_API modbus_t* modbus_new_udp_pi(const char* node, const char* service);
+MODBUS_API int modbus_udp_pi_listen(modbus_t* ctx, int nb_connection);
+MODBUS_API int modbus_udp_pi_accept(modbus_t *ctx, int *socket);
 
 MODBUS_END_DECLS
 

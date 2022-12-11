@@ -50,9 +50,6 @@
     <ClInclude Include="..\modbus-tcp.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="modbus-version.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\modbus.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -60,6 +57,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\modbus-udp-private.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\modbus-version.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
