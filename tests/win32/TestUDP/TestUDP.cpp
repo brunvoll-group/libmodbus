@@ -9,14 +9,16 @@
 
 int main()
 {
+    #if(1)
     int socket;
     modbus_t* ctx;
     modbus_mapping_t* mb_mapping;
 
-    ctx = modbus_new_udp("127.0.0.1", 502);
-    modbus_set_debug(ctx, TRUE);
+    //ctx = modbus_new_udp("127.0.0.1", 502);
+    ctx = modbus_new_udp("0.0.0.0", 502);
+   modbus_set_debug(ctx, TRUE);
 
-    mb_mapping = modbus_mapping_new(500, 500, 500, 500);
+    mb_mapping = modbus_mapping_new(0xffff, 0xffff, 0xffff, 0xffff);
     if (mb_mapping == NULL) {
         fprintf(stderr, "Failed to allocate the mapping: %s\n",
             modbus_strerror(errno));
@@ -25,7 +27,7 @@ int main()
     }
 
     socket = modbus_udp_listen(ctx, 1);
-    // modbus_udp_accept(ctx, &socket);
+    //modbus_udp_accept(ctx, &socket);
 
     for (;;) {
         uint8_t query[MODBUS_TCP_MAX_ADU_LENGTH];
@@ -47,6 +49,51 @@ int main()
     modbus_mapping_free(mb_mapping);
     modbus_close(ctx);
     modbus_free(ctx);
+    #else
+
+
+    int s = -1;
+    modbus_t *ctx;
+    modbus_mapping_t *mb_mapping;
+
+    ctx = modbus_new_tcp("127.0.0.1", 63137);
+    modbus_set_debug(ctx, TRUE);
+
+    mb_mapping = modbus_mapping_new(500, 500, 500, 500);
+    if (mb_mapping == NULL) {
+        fprintf(stderr, "Failed to allocate the mapping: %s\n", modbus_strerror(errno));
+        modbus_free(ctx);
+        return -1;
+    }
+
+    s = modbus_tcp_listen(ctx, 1);
+    modbus_tcp_accept(ctx, &s);
+
+    for (;;) {
+        uint8_t query[MODBUS_TCP_MAX_ADU_LENGTH];
+        int rc;
+
+        rc = modbus_receive(ctx, query);
+        if (rc > 0) {
+            /* rc is the query size */
+            modbus_reply(ctx, query, rc, mb_mapping);
+        } else if (rc == -1) {
+            /* Connection closed by the client or error */
+            break;
+        }
+    }
+
+    printf("Quit the loop: %s\n", modbus_strerror(errno));
+
+    if (s != -1) {
+        //close(s);
+    }
+    modbus_mapping_free(mb_mapping);
+    modbus_close(ctx);
+    modbus_free(ctx);
+
+    return 0;
+    #endif
 }
 
 // Run program: Ctrl + F5 or Debug > Start Without Debugging menu
