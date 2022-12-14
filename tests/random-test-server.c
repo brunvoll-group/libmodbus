@@ -15,6 +15,7 @@
 
 int main(void)
 {
+#if(0)
     int s = -1;
     modbus_t *ctx;
     modbus_mapping_t *mb_mapping;
@@ -56,4 +57,44 @@ int main(void)
     modbus_free(ctx);
 
     return 0;
+#else
+    int socket;
+    modbus_t* ctx;
+    modbus_mapping_t* mb_mapping;
+
+    ctx = modbus_new_udp("127.0.0.1", 1502);
+    modbus_set_debug(ctx, TRUE);
+
+    mb_mapping = modbus_mapping_new(500, 500, 500, 500);
+    if (mb_mapping == NULL) {
+        fprintf(stderr, "Failed to allocate the mapping: %s\n",
+            modbus_strerror(errno));
+        modbus_free(ctx);
+        return -1;
+    }
+
+    socket = modbus_udp_listen(ctx, 1);
+    // modbus_udp_accept(ctx, &socket);
+
+    for (;;) {
+        uint8_t query[MODBUS_TCP_MAX_ADU_LENGTH];
+        int rc;
+
+        rc = modbus_receive(ctx, query);
+        if (rc != -1) {
+            /* rc is the query size */
+            modbus_reply(ctx, query, rc, mb_mapping);
+        }
+        else {
+            /* Connection closed by the client or error */
+            break;
+        }
+    }
+
+    printf("Quit the loop: %s\n", modbus_strerror(errno));
+
+    modbus_mapping_free(mb_mapping);
+    modbus_close(ctx);
+    modbus_free(ctx);
+#endif
 }
