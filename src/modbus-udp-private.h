@@ -33,6 +33,15 @@ typedef struct _modbus_udp {
     struct sockaddr_in si_other;
 } modbus_udp_t;
 
+typedef struct _modbus_udp_packet_cache {
+    /* current position*/
+    int position;
+    /* current size */
+    int size;
+    /* data */
+    const uint8_t* data[MODBUS_UDP_MAX_ADU_LENGTH]; 
+} modbus_udp_cache_t;
+
 #define _MODBUS_UDP_PI_NODE_LENGTH    1025
 #define _MODBUS_UDP_PI_SERVICE_LENGTH   32
 

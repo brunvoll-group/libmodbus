@@ -2,7 +2,7 @@
 import time
 from pymodbus.client import ModbusUdpClient
 
-with ModbusUdpClient('127.0.0.1') as client:
+with ModbusUdpClient('127.0.0.1', port=502) as client:
     for addr in range(100, 100 + 3*48):
         client.write_coil(addr, False)
         time.sleep(0.1)

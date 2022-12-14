@@ -65,6 +65,34 @@
 #include "modbus-udp.h"
 #include "modbus-udp-private.h"
 
+// PACKET CAHE, in UDP we need simulate packet arrive as TCP will do, so modbus core code will work without changes
+static modbus_udp_cache_t _udp_cache; 
+
+static void _udp_reset_cache() {
+    _udp_cache.position = 0;
+    _udp_cache.size = 0;
+}
+
+static int _udp_avialable_in_cache() {
+    return _udp_cache.size - _udp_cache.position;
+}
+
+static int _udp_read_from_cache(modbus_t *ctx, uint8_t *dest, int len) {
+    if(_udp_cache.position + len <= _udp_cache.size) {
+        memcpy(dest, _udp_cache.data + _udp_cache.position, len);
+        _udp_cache.position += len;
+        return len;
+    } else {
+        if (ctx->debug) {
+            fprintf(stderr, "Not enought data in buffer\n");
+        }
+        errno = EINVAL;
+        return -1;
+    }
+}
+
+
+
 #ifdef OS_WIN32
 static int _modbus_udp_init_win32(void)
 {
@@ -193,16 +221,26 @@ ssize_t _modbus_udp_send(modbus_t *ctx, const uint8_t *req, int req_length)
 
 static int _modbus_udp_receive(modbus_t* ctx, uint8_t* req)
 {
+    // reset chache
+    _udp_reset_cache();
+
     return _modbus_receive_msg(ctx, req, MSG_INDICATION);
 }
 
-ssize_t _modbus_udp_recv(modbus_t *ctx, uint8_t *rsp, int req_length)
+ssize_t _modbus_udp_recv(modbus_t* ctx, uint8_t* rsp, int req_length)
 {
-    modbus_udp_t *ctx_udp = ctx->backend_data;
-    socklen_t slen = sizeof(ctx_udp->si_other);
-    ssize_t recvsize = recvfrom(ctx->s, (char *)rsp, MODBUS_UDP_MAX_ADU_LENGTH, 0, 
-            (struct sockaddr *) &ctx_udp->si_other, &slen);
-    return recvsize;
+    if (_udp_avialable_in_cache() < req_length) {
+        // read into cache
+        _udp_reset_cache();
+
+        modbus_udp_t* ctx_udp = ctx->backend_data;
+        socklen_t slen = sizeof(ctx_udp->si_other);
+        ssize_t recvsize = recvfrom(ctx->s, _udp_cache.data, MODBUS_UDP_MAX_ADU_LENGTH, 0,
+            (struct sockaddr*)&ctx_udp->si_other, &slen);
+        _udp_cache.size = recvsize;
+    }
+
+    return _udp_read_from_cache(ctx, rsp, req_length);
 }
 
 int _modbus_udp_check_integrity(modbus_t *ctx, uint8_t *msg, const int msg_length)
@@ -237,7 +275,7 @@ static int _modbus_udp_set_ipv4_options(int s)
     option = 1;
 
     option = 1;
-    rc = setsockopt(s, IPPROTO_TCP, TCP_NODELAY, (const void*)&option, sizeof(int));
+    rc = setsockopt(s, IPPROTO_UDP, TCP_NODELAY, (const void*)&option, sizeof(int));
     if (rc == -1) {
         return -1;
     }
@@ -416,7 +454,11 @@ int _modbus_udp_flush(modbus_t *ctx)
 
         if (rc == 1) {
             /* There is data to flush */
-            rc = recv(ctx->s, devnull, MODBUS_UDP_MAX_ADU_LENGTH, 0);
+            // rc = recv(ctx->s, devnull, MODBUS_UDP_MAX_ADU_LENGTH, 0);
+            modbus_udp_t* ctx_udp = ctx->backend_data;
+            socklen_t slen = sizeof(ctx_udp->si_other);
+            ssize_t recvsize = recvfrom(ctx->s, devnull, MODBUS_UDP_MAX_ADU_LENGTH, 0,
+                (struct sockaddr*)&ctx_udp->si_other, &slen);
         }
 #endif
         if (rc > 0) {
@@ -543,14 +585,14 @@ int modbus_udp_pi_listen(modbus_t *ctx, int nb_connection)
             continue;
         }
 
-        rc = listen(s, nb_connection);
+        /*rc = listen(s, nb_connection);
         if (rc != 0) {
             close(s);
             if (ctx->debug) {
                 perror("listen");
             }
             continue;
-        }
+        }*/
 
         new_socket = s;
         break;
@@ -569,7 +611,7 @@ int modbus_udp_pi_listen(modbus_t *ctx, int nb_connection)
    appropriately. */
 int modbus_udp_accept(modbus_t *ctx, int *socket)
 {
-    struct sockaddr_in addr;
+    /*struct sockaddr_in addr;
     socklen_t addrlen;
 
     addrlen = sizeof(addr);
@@ -588,14 +630,14 @@ int modbus_udp_accept(modbus_t *ctx, int *socket)
         else {
             printf("Client connection accepted from %s.\n", buf);
         }
-    }
+    }*/
 
     return ctx->s;
 }
 
 int modbus_udp_pi_accept(modbus_t *ctx, int *socket)
 {
-    struct sockaddr_storage addr;
+    /*struct sockaddr_storage addr;
     socklen_t addrlen;
 
     addrlen = sizeof(addr);
@@ -607,7 +649,7 @@ int modbus_udp_pi_accept(modbus_t *ctx, int *socket)
 
     if (ctx->debug) {
         printf("The client connection is accepted.\n");
-    }
+    }*/
 
     return ctx->s;
 }
@@ -615,7 +657,13 @@ int modbus_udp_pi_accept(modbus_t *ctx, int *socket)
 int _modbus_udp_select(modbus_t *ctx, fd_set *rfds, struct timeval *tv, int length_to_read)
 {
     int s_rc;
-    while ((s_rc = select(ctx->s+1, rfds, NULL, NULL, NULL /*tv*/)) == -1) {
+
+    // first check cached packet
+    if (_udp_avialable_in_cache() > 0) {
+        return 1;
+    }
+
+    while ((s_rc = select(ctx->s+1, rfds, NULL, NULL, tv)) == -1) {
         if (errno == EINTR) {
             if (ctx->debug) {
                 fprintf(stderr, "A non blocked signal was caught\n");
