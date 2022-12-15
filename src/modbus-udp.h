@@ -38,7 +38,6 @@ MODBUS_BEGIN_DECLS
 
 /* Modbus_Application_Protocol_V1_1b.pdf Chapter 4 Section 1 Page 5
  * TCP MODBUS ADU = 253 bytes + MBAP (7 bytes) = 260 bytes
- * AWG ??
  */
 #define MODBUS_UDP_MAX_ADU_LENGTH  260
 

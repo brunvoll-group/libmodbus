@@ -7,9 +7,8 @@
 
 #include <modbus.h>
 
-int main()
+int main(void)
 {
-    int socket;
     modbus_t* ctx;
     modbus_mapping_t* mb_mapping;
 
@@ -24,7 +23,7 @@ int main()
         return -1;
     }
 
-    socket = modbus_udp_listen(ctx, 1);
+    modbus_udp_listen(ctx, 1);
 
     for (;;) {
         uint8_t query[MODBUS_TCP_MAX_ADU_LENGTH];

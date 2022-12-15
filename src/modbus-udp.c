@@ -69,12 +69,12 @@
 // PACKET CAHE, in UDP we need simulate packet arrive as TCP will do, so modbus core code will work without changes
 static modbus_udp_cache_t _udp_cache; 
 
-static void _udp_reset_cache() {
+static void _udp_reset_cache(void) {
     _udp_cache.position = 0;
     _udp_cache.size = 0;
 }
 
-static int _udp_avialable_in_cache() {
+static int _udp_avialable_in_cache(void) {
     return _udp_cache.size - _udp_cache.position;
 }
 
@@ -128,7 +128,7 @@ static int _modbus_set_slave(modbus_t *ctx, int slave)
 }
 
 /* Builds a UDP request header */
-int _modbus_udp_build_request_basis(modbus_t *ctx, int function,
+static int _modbus_udp_build_request_basis(modbus_t *ctx, int function,
                                     int addr, int nb,
                                     uint8_t *req)
 {
@@ -167,7 +167,7 @@ int _modbus_udp_build_request_basis(modbus_t *ctx, int function,
 }
 
 /* Builds a UDP response header */
-int _modbus_udp_build_response_basis(sft_t *sft, uint8_t *rsp)
+static int _modbus_udp_build_response_basis(sft_t *sft, uint8_t *rsp)
 {
     /* 
        Extract from MODBUS Messaging on TCP/IP Implementation
@@ -191,12 +191,12 @@ int _modbus_udp_build_response_basis(sft_t *sft, uint8_t *rsp)
 }
 
 
-int _modbus_udp_prepare_response_tid(const uint8_t *req, int *req_length)
+static int _modbus_udp_prepare_response_tid(const uint8_t *req, int *req_length)
 {
     return (req[0] << 8) + req[1];
 }
 
-int _modbus_udp_send_msg_pre(uint8_t *req, int req_length)
+static int _modbus_udp_send_msg_pre(uint8_t *req, int req_length)
 {
     /* Substract the header length to the message length */
     int mbap_length = req_length - 6;
@@ -207,7 +207,7 @@ int _modbus_udp_send_msg_pre(uint8_t *req, int req_length)
     return req_length;
 }
 
-ssize_t _modbus_udp_send(modbus_t *ctx, const uint8_t *req, int req_length)
+static ssize_t _modbus_udp_send(modbus_t *ctx, const uint8_t *req, int req_length)
 {
     /* MSG_NOSIGNAL
        Requests not to send SIGPIPE on errors on stream oriented
@@ -227,7 +227,7 @@ static int _modbus_udp_receive(modbus_t* ctx, uint8_t* req)
     return _modbus_receive_msg(ctx, req, MSG_INDICATION);
 }
 
-ssize_t _modbus_udp_recv(modbus_t* ctx, uint8_t* rsp, int req_length)
+static  ssize_t _modbus_udp_recv(modbus_t* ctx, uint8_t* rsp, int req_length)
 {
     // if cache is empty, receive it in cache first
     if (_udp_avialable_in_cache() < req_length) {
@@ -246,12 +246,12 @@ ssize_t _modbus_udp_recv(modbus_t* ctx, uint8_t* rsp, int req_length)
     return _udp_read_from_cache(ctx, rsp, req_length);
 }
 
-int _modbus_udp_check_integrity(modbus_t *ctx, uint8_t *msg, const int msg_length)
+static int _modbus_udp_check_integrity(modbus_t *ctx, uint8_t *msg, const int msg_length)
 {
     return msg_length;
 }
 
-int _modbus_udp_pre_check_confirmation(modbus_t *ctx, const uint8_t *req,
+static int _modbus_udp_pre_check_confirmation(modbus_t *ctx, const uint8_t *req,
                                        const uint8_t *rsp, int rsp_length)
 {
     /* Check TID */
@@ -423,13 +423,13 @@ static unsigned int _modbus_udp_is_connected(modbus_t* ctx)
 }
 
 /* Closes the network connection and socket in UDP mode */
-void _modbus_udp_close(modbus_t *ctx)
+static void _modbus_udp_close(modbus_t *ctx)
 {
     shutdown(ctx->s, SHUT_RDWR);
     close(ctx->s);
 }
 
-int _modbus_udp_flush(modbus_t *ctx)
+static int _modbus_udp_flush(modbus_t *ctx)
 {
     int rc;
     int rc_sum = 0;
@@ -608,7 +608,7 @@ int modbus_udp_pi_accept(modbus_t *ctx, int *socket)
     return ctx->s;
 }
 
-int _modbus_udp_select(modbus_t *ctx, fd_set *rfds, struct timeval *tv, int length_to_read)
+static int _modbus_udp_select(modbus_t *ctx, fd_set *rfds, struct timeval *tv, int length_to_read)
 {
     int s_rc;
 
