@@ -29,7 +29,9 @@
 enum {
     TCP,
     TCP_PI,
-    RTU
+    RTU,
+    UDP,
+    UDP_PI
 };
 
 int main(int argc, char *argv[])
@@ -51,9 +53,13 @@ int main(int argc, char *argv[])
             use_backend = TCP_PI;
         } else if (strcmp(argv[1], "rtu") == 0) {
             use_backend = RTU;
+        } else if (strcmp(argv[1], "udp") == 0) {
+            use_backend = UDP;
+        } else if (strcmp(argv[1], "udppi") == 0) {
+            use_backend = UDP_PI;
         } else {
             printf("Modbus server for unit testing.\n");
-            printf("Usage:\n  %s [tcp|tcppi|rtu] [<ip or device>]\n", argv[0]);
+            printf("Usage:\n  %s [tcp|tcppi|rtu|udp|udppi] [<ip or device>]\n", argv[0]);
             printf("Eg. tcp 127.0.0.1 or rtu /dev/ttyUSB0\n\n");
             return -1;
         }
@@ -75,6 +81,12 @@ int main(int argc, char *argv[])
         case RTU:
             ip_or_device = "/dev/ttyUSB0";
             break;
+        case UDP:
+            ip_or_device = "127.0.0.1";
+            break;
+        case UDP_PI:
+            ip_or_device = "::1";
+            break;
         default:
             break;
         }
@@ -86,11 +98,17 @@ int main(int argc, char *argv[])
     } else if (use_backend == TCP_PI) {
         ctx = modbus_new_tcp_pi(ip_or_device, "1502");
         query = malloc(MODBUS_TCP_MAX_ADU_LENGTH);
-    } else {
+    } else if (use_backend == RTU) {
         ctx = modbus_new_rtu(ip_or_device, 115200, 'N', 8, 1);
         modbus_set_slave(ctx, SERVER_ID);
         query = malloc(MODBUS_RTU_MAX_ADU_LENGTH);
-    }
+    } else if (use_backend == UDP) {
+        ctx = modbus_new_udp(ip_or_device, 1502);
+        query = malloc(MODBUS_UDP_MAX_ADU_LENGTH);
+    } else if (use_backend == UDP_PI) {
+        ctx = modbus_new_udp_pi(ip_or_device, "1502");
+        query = malloc(MODBUS_UDP_MAX_ADU_LENGTH);
+    } 
 
     header_length = modbus_get_header_length(ctx);
 
@@ -128,14 +146,18 @@ int main(int argc, char *argv[])
     } else if (use_backend == TCP_PI) {
         s = modbus_tcp_pi_listen(ctx, 1);
         modbus_tcp_pi_accept(ctx, &s);
-    } else {
+    } else if (use_backend == RTU) {
         rc = modbus_connect(ctx);
         if (rc == -1) {
             fprintf(stderr, "Unable to connect %s\n", modbus_strerror(errno));
             modbus_free(ctx);
             return -1;
         }
-    }
+    } else if (use_backend == UDP) {
+        s = modbus_udp_listen(ctx, 1);
+    } else if (use_backend == UDP_PI) {
+        s = modbus_udp_pi_listen(ctx, 1);
+    } 
 
     for (;;) {
         do {

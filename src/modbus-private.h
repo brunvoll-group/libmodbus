@@ -25,10 +25,11 @@ typedef int ssize_t;
 MODBUS_BEGIN_DECLS
 
 /* It's not really the minimal length (the real one is report slave ID
- * in RTU (4 bytes)) but it's a convenient size to use in RTU or TCP
+ * in RTU (4 bytes)) but it's a convenient size to use in RTU or TCP or UDP
  * communications to read many values or write a single one.
  * Maximum between :
  * - HEADER_LENGTH_TCP (7) + function (1) + address (2) + number (2)
+ * - HEADER_LENGTH_UDP (7) + function (1) + address (2) + number (2)
  * - HEADER_LENGTH_RTU (1) + function (1) + address (2) + number (2) + CRC (2)
  */
 #define _MIN_REQ_LENGTH 12
@@ -38,12 +39,26 @@ MODBUS_BEGIN_DECLS
 #define _MODBUS_EXCEPTION_RSP_LENGTH 5
 
 /* Timeouts in microsecond (0.5 s) */
-#define _RESPONSE_TIMEOUT 500000
-#define _BYTE_TIMEOUT     500000
+#define _RESPONSE_TIMEOUT    500000
+#define _BYTE_TIMEOUT        500000
+
+/* Function codes */
+#define _FC_READ_COILS                0x01
+#define _FC_READ_DISCRETE_INPUTS      0x02
+#define _FC_READ_HOLDING_REGISTERS    0x03
+#define _FC_READ_INPUT_REGISTERS      0x04
+#define _FC_WRITE_SINGLE_COIL         0x05
+#define _FC_WRITE_SINGLE_REGISTER     0x06
+#define _FC_READ_EXCEPTION_STATUS     0x07
+#define _FC_WRITE_MULTIPLE_COILS      0x0F
+#define _FC_WRITE_MULTIPLE_REGISTERS  0x10
+#define _FC_REPORT_SLAVE_ID           0x11
+#define _FC_WRITE_AND_READ_REGISTERS  0x17
 
 typedef enum {
     _MODBUS_BACKEND_TYPE_RTU = 0,
-    _MODBUS_BACKEND_TYPE_TCP
+    _MODBUS_BACKEND_TYPE_TCP,
+    _MODBUS_BACKEND_TYPE_UDP
 } modbus_backend_type_t;
 
 /*

@@ -15,6 +15,7 @@
 
 int main(void)
 {
+
     int s = -1;
     modbus_t *ctx;
     modbus_mapping_t *mb_mapping;
