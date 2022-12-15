@@ -79,7 +79,7 @@ static int _udp_avialable_in_cache() {
 
 static int _udp_read_from_cache(modbus_t *ctx, uint8_t *dest, int len) {
     if(_udp_cache.position + len <= _udp_cache.size) {
-        memcpy(dest, _udp_cache.data + _udp_cache.position, len);
+        memcpy(dest, (void*)((uint8_t*)_udp_cache.data + _udp_cache.position), len);
         _udp_cache.position += len;
         return len;
     } else {

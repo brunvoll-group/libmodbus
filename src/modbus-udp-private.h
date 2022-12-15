@@ -39,7 +39,7 @@ typedef struct _modbus_udp_packet_cache {
     /* current size */
     int size;
     /* data */
-    const uint8_t* data[MODBUS_UDP_MAX_ADU_LENGTH]; 
+    uint8_t* data[MODBUS_UDP_MAX_ADU_LENGTH]; 
 } modbus_udp_cache_t;
 
 #define _MODBUS_UDP_PI_NODE_LENGTH    1025
