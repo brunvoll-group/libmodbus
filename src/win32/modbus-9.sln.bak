@@ -10,7 +10,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "random-test-server-udp", ".
 		{498E0845-C7F4-438B-8EDE-EF7FC9A74430} = {498E0845-C7F4-438B-8EDE-EF7FC9A74430}
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "random-test-client-udp", "..\..\tests\win32\random-test-client-udp\random-test-client-udp.vcxproj", "{EB7FE42D-BE27-45B2-8C9D-78B0D173C646}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TestUDPClient", "..\..\tests\win32\TestUDPClient\TestUDPClient.vcxproj", "{EB7FE42D-BE27-45B2-8C9D-78B0D173C646}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

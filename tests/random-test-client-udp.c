@@ -12,7 +12,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "..\..\..\src\modbus.h"
+#include <modbus.h>
 
 /* The goal of this program is to check all major functions of
    libmodbus:
@@ -55,8 +55,8 @@ int main(void)
         modbus_set_slave(ctx, SERVER_ID);
     */
 
-    /* TCP */
-    ctx = modbus_new_tcp("127.0.0.1", 63137);
+    /* UDP */
+    ctx = modbus_new_udp("127.0.0.1", 1502);
     modbus_set_debug(ctx, TRUE);
 
     if (modbus_connect(ctx) == -1) {

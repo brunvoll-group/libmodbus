@@ -1,5 +1,6 @@
 /*
  * Copyright © 2017 Andrii Gumega <gumegaandrej@gmail.com>
+ * Copyright © 2022 Ladislav Sopko <ladislav.sopko@gmail.com>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -33,6 +34,12 @@ typedef struct _modbus_udp {
     struct sockaddr_in si_other;
 } modbus_udp_t;
 
+/**
+* In UDP there is used recvfrom, and it will return whole UDP datagram packet, 
+* so we will cache it for time it is consumed by modbus core, 
+* we can simulate TCP behaviour
+* so modbus core will work as is without any changes.
+*/
 typedef struct _modbus_udp_packet_cache {
     /* current position*/
     int position;

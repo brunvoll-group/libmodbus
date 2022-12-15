@@ -1,5 +1,6 @@
 /*
  * Copyright © 2017 Andrii Gumega <gumegaandrej@gmail.com>
+ * Copyright © 2022 Ladislav Sopko <ladislav.sopko@gmail.com> 
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -133,8 +134,7 @@ int _modbus_udp_build_request_basis(modbus_t *ctx, int function,
 {
 
     /* 
-        AWG ??
-    Extract from MODBUS Messaging on TCP/IP Implementation Guide V1.0b
+       Extract from MODBUS Messaging on TCP/IP Implementation Guide V1.0b
        (page 23/46):
        The transaction identifier is used to associate the future response
        with the request. So, at a time, on a TCP connection, this identifier
@@ -170,8 +170,7 @@ int _modbus_udp_build_request_basis(modbus_t *ctx, int function,
 int _modbus_udp_build_response_basis(sft_t *sft, uint8_t *rsp)
 {
     /* 
-        AWG ??
-    Extract from MODBUS Messaging on TCP/IP Implementation
+       Extract from MODBUS Messaging on TCP/IP Implementation
        Guide V1.0b (page 23/46):
        The transaction identifier is used to associate the future
        response with the request. */
@@ -221,18 +220,21 @@ ssize_t _modbus_udp_send(modbus_t *ctx, const uint8_t *req, int req_length)
 
 static int _modbus_udp_receive(modbus_t* ctx, uint8_t* req)
 {
-    // reset chache
+    // reset chache, each new receive request will reset internal UDP datagram cachee
     _udp_reset_cache();
 
+    // do receive
     return _modbus_receive_msg(ctx, req, MSG_INDICATION);
 }
 
 ssize_t _modbus_udp_recv(modbus_t* ctx, uint8_t* rsp, int req_length)
 {
+    // if cache is empty, receive it in cache first
     if (_udp_avialable_in_cache() < req_length) {
-        // read into cache
+        // do reset for sure
         _udp_reset_cache();
 
+        // read into cache
         modbus_udp_t* ctx_udp = ctx->backend_data;
         socklen_t slen = sizeof(ctx_udp->si_other);
         ssize_t recvsize = recvfrom(ctx->s, _udp_cache.data, MODBUS_UDP_MAX_ADU_LENGTH, 0,
@@ -240,6 +242,7 @@ ssize_t _modbus_udp_recv(modbus_t* ctx, uint8_t* rsp, int req_length)
         _udp_cache.size = recvsize;
     }
 
+    // get wanted bytes from cache
     return _udp_read_from_cache(ctx, rsp, req_length);
 }
 
@@ -269,9 +272,8 @@ static int _modbus_udp_set_ipv4_options(int s)
     int rc;
     int option;
 
-    /* AWG ?? */
     /* Set the TCP no delay flag */
-    /* SOL_TCP = IPPROTO_TCP */
+    /* SOL_TCP = IPPROTO_UDP */
     option = 1;
 
     option = 1;
@@ -327,7 +329,6 @@ static int _modbus_udp_connect(modbus_t *ctx)
     }
 #endif
 
-    //ctx->s = socket(PF_INET, SOCK_STREAM, 0);
     ctx->s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if (ctx->s == -1) {
         printf("error socket creation: %s\n", strerror(errno));
@@ -454,7 +455,6 @@ int _modbus_udp_flush(modbus_t *ctx)
 
         if (rc == 1) {
             /* There is data to flush */
-            // rc = recv(ctx->s, devnull, MODBUS_UDP_MAX_ADU_LENGTH, 0);
             modbus_udp_t* ctx_udp = ctx->backend_data;
             socklen_t slen = sizeof(ctx_udp->si_other);
             ssize_t recvsize = recvfrom(ctx->s, devnull, MODBUS_UDP_MAX_ADU_LENGTH, 0,
@@ -483,7 +483,8 @@ int modbus_udp_listen(modbus_t *ctx, int nb_connection)
     }
 #endif
 
-    new_socket = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);     // AWG ??
+    // UDP socket
+    new_socket = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);     
     if (new_socket == -1) {
         return -1;
     }
@@ -504,11 +505,6 @@ int modbus_udp_listen(modbus_t *ctx, int nb_connection)
         close(new_socket);
         return -1;
     }
-
-    /*if (listen(new_socket, nb_connection) == -1) {
-        close(new_socket);
-        return -1;
-    }*/
 
     ctx->s = new_socket;
 
@@ -585,15 +581,6 @@ int modbus_udp_pi_listen(modbus_t *ctx, int nb_connection)
             continue;
         }
 
-        /*rc = listen(s, nb_connection);
-        if (rc != 0) {
-            close(s);
-            if (ctx->debug) {
-                perror("listen");
-            }
-            continue;
-        }*/
-
         new_socket = s;
         break;
     }
@@ -611,46 +598,13 @@ int modbus_udp_pi_listen(modbus_t *ctx, int nb_connection)
    appropriately. */
 int modbus_udp_accept(modbus_t *ctx, int *socket)
 {
-    /*struct sockaddr_in addr;
-    socklen_t addrlen;
-
-    addrlen = sizeof(addr);
-    ctx->s = accept(*socket, (struct sockaddr *)&addr, &addrlen);
-    if (ctx->s == -1) {
-        close(*socket);
-        *socket = 0;
-        return -1;
-    }
-
-    if (ctx->debug) {
-        char buf[INET_ADDRSTRLEN];
-        if (inet_ntop(AF_INET, &(addr.sin_addr), buf, INET_ADDRSTRLEN) == NULL) {
-            fprintf(stderr, "Client connection accepted from unparsable IP.\n");
-        }
-        else {
-            printf("Client connection accepted from %s.\n", buf);
-        }
-    }*/
-
+    // UDP there is no accept !!!
     return ctx->s;
 }
 
 int modbus_udp_pi_accept(modbus_t *ctx, int *socket)
 {
-    /*struct sockaddr_storage addr;
-    socklen_t addrlen;
-
-    addrlen = sizeof(addr);
-    ctx->s = accept(*socket, (void *)&addr, &addrlen);
-    if (ctx->s == -1) {
-        close(*socket);
-        *socket = 0;
-    }
-
-    if (ctx->debug) {
-        printf("The client connection is accepted.\n");
-    }*/
-
+    // UDP there is no accept !!!
     return ctx->s;
 }
 
@@ -658,11 +612,12 @@ int _modbus_udp_select(modbus_t *ctx, fd_set *rfds, struct timeval *tv, int leng
 {
     int s_rc;
 
-    // first check cached packet
+    // first check cached UDP packet
     if (_udp_avialable_in_cache() > 0) {
         return 1;
     }
 
+    // If not cached wait real select
     while ((s_rc = select(ctx->s+1, rfds, NULL, NULL, tv)) == -1) {
         if (errno == EINTR) {
             if (ctx->debug) {
@@ -703,11 +658,6 @@ static void _modbus_udp_pi_free(modbus_t* ctx)
 
     free(ctx);
 }
-
-//int _modbus_udp_filter_request(modbus_t *ctx, int slave)
-//{
-//    return 0;
-//}
 
 const modbus_backend_t _modbus_udp_backend = {
     _MODBUS_BACKEND_TYPE_UDP,
