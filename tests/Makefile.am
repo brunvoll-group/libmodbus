@@ -6,6 +6,8 @@ noinst_PROGRAMS = \
 	bandwidth-client \
 	random-test-server \
 	random-test-client \
+	random-test-server-udp \
+	random-test-client-udp \
 	unit-test-server \
 	unit-test-client \
 	version
@@ -25,8 +27,14 @@ bandwidth_client_LDADD = $(common_ldflags)
 random_test_server_SOURCES = random-test-server.c
 random_test_server_LDADD = $(common_ldflags)
 
+random_test_server_udp_SOURCES = random-test-server-udp.c
+random_test_server_udp_LDADD = $(common_ldflags)
+
 random_test_client_SOURCES = random-test-client.c
 random_test_client_LDADD = $(common_ldflags)
+
+random_test_client_udp_SOURCES = random-test-client-udp.c
+random_test_client_udp_LDADD = $(common_ldflags)
 
 unit_test_server_SOURCES = unit-test-server.c unit-test.h
 unit_test_server_LDADD = $(common_ldflags)
