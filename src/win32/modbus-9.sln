@@ -10,6 +10,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TestUDP", "..\..\tests\win3
 		{498E0845-C7F4-438B-8EDE-EF7FC9A74430} = {498E0845-C7F4-438B-8EDE-EF7FC9A74430}
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TestUDPClient", "..\..\tests\win32\TestUDPClient\TestUDPClient.vcxproj", "{EB7FE42D-BE27-45B2-8C9D-78B0D173C646}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -34,6 +36,14 @@ Global
 		{C09CE1E2-1907-48A0-AB80-33268892F258}.Release|Win32.Build.0 = Release|Win32
 		{C09CE1E2-1907-48A0-AB80-33268892F258}.Release|x64.ActiveCfg = Release|x64
 		{C09CE1E2-1907-48A0-AB80-33268892F258}.Release|x64.Build.0 = Release|x64
+		{EB7FE42D-BE27-45B2-8C9D-78B0D173C646}.Debug|Win32.ActiveCfg = Debug|Win32
+		{EB7FE42D-BE27-45B2-8C9D-78B0D173C646}.Debug|Win32.Build.0 = Debug|Win32
+		{EB7FE42D-BE27-45B2-8C9D-78B0D173C646}.Debug|x64.ActiveCfg = Debug|x64
+		{EB7FE42D-BE27-45B2-8C9D-78B0D173C646}.Debug|x64.Build.0 = Debug|x64
+		{EB7FE42D-BE27-45B2-8C9D-78B0D173C646}.Release|Win32.ActiveCfg = Release|Win32
+		{EB7FE42D-BE27-45B2-8C9D-78B0D173C646}.Release|Win32.Build.0 = Release|Win32
+		{EB7FE42D-BE27-45B2-8C9D-78B0D173C646}.Release|x64.ActiveCfg = Release|x64
+		{EB7FE42D-BE27-45B2-8C9D-78B0D173C646}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
