@@ -66,22 +66,20 @@
 #include "modbus-udp.h"
 #include "modbus-udp-private.h"
 
-// PACKET CAHE, in UDP we need simulate packet arrive as TCP will do, so modbus core code will work without changes
-static modbus_udp_cache_t _udp_cache; 
-
-static void _udp_reset_cache(void) {
-    _udp_cache.position = 0;
-    _udp_cache.size = 0;
+static void _udp_reset_cache(modbus_udp_t* ctx_udp) {
+    ctx_udp->udp_cache.position = 0;
+    ctx_udp->udp_cache.size = 0;
 }
 
-static int _udp_avialable_in_cache(void) {
-    return _udp_cache.size - _udp_cache.position;
+static int _udp_avialable_in_cache(modbus_udp_t* ctx_udp) {
+    return ctx_udp->udp_cache.size - ctx_udp->udp_cache.position;
 }
 
 static int _udp_read_from_cache(modbus_t *ctx, uint8_t *dest, int len) {
-    if(_udp_cache.position + len <= _udp_cache.size) {
-        memcpy(dest, (void*)((uint8_t*)_udp_cache.data + _udp_cache.position), len);
-        _udp_cache.position += len;
+    modbus_udp_t* ctx_udp = ctx->backend_data;
+    if(ctx_udp->udp_cache.position + len <= ctx_udp->udp_cache.size) {
+        memcpy(dest, (void*)((uint8_t*)ctx_udp->udp_cache.data + ctx_udp->udp_cache.position), len);
+        ctx_udp->udp_cache.position += len;
         return len;
     } else {
         if (ctx->debug) {
@@ -221,7 +219,7 @@ static ssize_t _modbus_udp_send(modbus_t *ctx, const uint8_t *req, int req_lengt
 static int _modbus_udp_receive(modbus_t* ctx, uint8_t* req)
 {
     // reset chache, each new receive request will reset internal UDP datagram cachee
-    _udp_reset_cache();
+    _udp_reset_cache(ctx->backend_data);
 
     // do receive
     return _modbus_receive_msg(ctx, req, MSG_INDICATION);
@@ -230,16 +228,16 @@ static int _modbus_udp_receive(modbus_t* ctx, uint8_t* req)
 static  ssize_t _modbus_udp_recv(modbus_t* ctx, uint8_t* rsp, int req_length)
 {
     // if cache is empty, receive it in cache first
-    if (_udp_avialable_in_cache() < req_length) {
+    if (_udp_avialable_in_cache(ctx->backend_data) < req_length) {
         // do reset for sure
-        _udp_reset_cache();
+        _udp_reset_cache(ctx->backend_data);
 
         // read into cache
         modbus_udp_t* ctx_udp = ctx->backend_data;
         socklen_t slen = sizeof(ctx_udp->si_other);
-        ssize_t recvsize = recvfrom(ctx->s, _udp_cache.data, MODBUS_UDP_MAX_ADU_LENGTH, 0,
+        ssize_t recvsize = recvfrom(ctx->s, ctx_udp->udp_cache.data, MODBUS_UDP_MAX_ADU_LENGTH, 0,
             (struct sockaddr*)&ctx_udp->si_other, &slen);
-        _udp_cache.size = recvsize;
+        ctx_udp->udp_cache.size = recvsize;
     }
 
     // get wanted bytes from cache
@@ -613,7 +611,7 @@ static int _modbus_udp_select(modbus_t *ctx, fd_set *rfds, struct timeval *tv, i
     int s_rc;
 
     // first check cached UDP packet
-    if (_udp_avialable_in_cache() > 0) {
+    if (_udp_avialable_in_cache(ctx->backend_data) > 0) {
         return 1;
     }
 
@@ -755,6 +753,7 @@ modbus_t* modbus_new_udp(const char *ip, int port)
 
     ctx_udp->port = port;
 
+    _udp_reset_cache(ctx_udp);
     return ctx;
 }
 

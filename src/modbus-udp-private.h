@@ -26,14 +26,6 @@
 
 #define _MODBUS_UDP_CHECKSUM_LENGTH    0
 
-typedef struct _modbus_udp {
-    /* UDP port */
-    int port;
-    /* IP address */
-    char ip[16];
-    struct sockaddr_in si_other;
-} modbus_udp_t;
-
 /**
 * In UDP there is used recvfrom, and it will return whole UDP datagram packet, 
 * so we will cache it for time it is consumed by modbus core, 
@@ -48,6 +40,17 @@ typedef struct _modbus_udp_packet_cache {
     /* data */
     uint8_t* data[MODBUS_UDP_MAX_ADU_LENGTH]; 
 } modbus_udp_cache_t;
+
+typedef struct _modbus_udp {
+    /* UDP port */
+    int port;
+    /* IP address */
+    char ip[16];
+    struct sockaddr_in si_other;
+
+    /* PACKET CACHE, in UDP we need simulate packet arrive as TCP will do, so modbus core code will work without changes */
+    modbus_udp_cache_t udp_cache;
+} modbus_udp_t;
 
 #define _MODBUS_UDP_PI_NODE_LENGTH    1025
 #define _MODBUS_UDP_PI_SERVICE_LENGTH   32
