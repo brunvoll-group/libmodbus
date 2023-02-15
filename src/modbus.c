@@ -806,9 +806,9 @@ int modbus_reply(modbus_t *ctx,
     case MODBUS_FC_READ_COILS:
     case MODBUS_FC_READ_DISCRETE_INPUTS: {
         unsigned int is_input = (function == MODBUS_FC_READ_DISCRETE_INPUTS);
-        int start_bits = is_input ? mb_mapping->start_input_bits : mb_mapping->start_bits;
-        int nb_bits = is_input ? mb_mapping->nb_input_bits : mb_mapping->nb_bits;
-        uint8_t *tab_bits = is_input ? mb_mapping->tab_input_bits : mb_mapping->tab_bits;
+        int start_bits = mb_mapping->start_input_bits;
+        int nb_bits = mb_mapping->nb_input_bits;
+        uint8_t *tab_bits = mb_mapping->tab_input_bits;
         const char *const name = is_input ? "read_input_bits" : "read_bits";
         int nb = (req[offset + 3] << 8) + req[offset + 4];
         /* The mapping can be shifted to reduce memory consumption and it
@@ -844,12 +844,9 @@ int modbus_reply(modbus_t *ctx,
     case MODBUS_FC_READ_HOLDING_REGISTERS:
     case MODBUS_FC_READ_INPUT_REGISTERS: {
         unsigned int is_input = (function == MODBUS_FC_READ_INPUT_REGISTERS);
-        int start_registers =
-            is_input ? mb_mapping->start_input_registers : mb_mapping->start_registers;
-        int nb_registers =
-            is_input ? mb_mapping->nb_input_registers : mb_mapping->nb_registers;
-        uint16_t *tab_registers =
-            is_input ? mb_mapping->tab_input_registers : mb_mapping->tab_registers;
+        int start_registers = mb_mapping->start_input_registers;
+        int nb_registers = mb_mapping->nb_input_registers;
+        uint16_t *tab_registers = mb_mapping->tab_input_registers;
         const char *const name = is_input ? "read_input_registers" : "read_registers";
         int nb = (req[offset + 3] << 8) + req[offset + 4];
         /* The mapping can be shifted to reduce memory consumption and it
